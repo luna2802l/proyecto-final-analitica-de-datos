@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clasificador Iris UCI</title>
+  <style>
+    body{font-family:Arial,sans-serif;background:#f4f6fb;margin:0;padding:20px}.container{max-width:850px;margin:auto;background:white;padding:25px;border-radius:16px;box-shadow:0 6px 18px #0002}h1{color:#243b6b}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}label{font-weight:bold;font-size:14px}input{width:100%;padding:9px;margin-top:4px;border:1px solid #bbb;border-radius:8px}button{margin-top:20px;padding:12px 18px;border:0;border-radius:10px;background:#243b6b;color:white;font-size:16px;cursor:pointer}.resultado{margin-top:20px;padding:18px;border-radius:12px;background:#eef3ff;font-size:20px}.nota{color:#555}
+  
+    .section{margin-top:25px;padding:18px;border-radius:12px;background:#fafbff;border:1px solid #dbe4ff}.section h2{margin-top:0;color:#243b6b}.tabla{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}.tabla th,.tabla td{border:1px solid #ccd6ee;padding:8px;text-align:center}.tabla th{background:#eef3ff}textarea{width:100%;min-height:120px;padding:10px;border:1px solid #bbb;border-radius:8px;font-family:monospace}.lote{font-size:14px;overflow:auto}.metricas{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-top:12px}.card{background:white;border:1px solid #dbe4ff;border-radius:10px;padding:12px}
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>Clasificador de Flores Iris - UCI</h1>
+  <p class="nota">Página web para GitHub Pages. Usa un modelo de clasificación múltiple basado en las medidas de la flor.</p>
+  <div id="form" class="grid"></div>
+  <button onclick="predecir()">Predecir clase</button>
+  <div id="resultado" class="resultado">Ingrese valores y presione predecir.</div>
+
+  <div class="section">
+    <h2>Red neuronal</h2>
+    <p class="nota">Modelo agregado de red neuronal multicapa para clasificar la flor Iris con los mismos valores ingresados arriba.</p>
+    <button onclick="predecirRedNeuronal()">Predecir con red neuronal</button>
+    <div id="resultado_nn" class="resultado">Presione predecir con red neuronal.</div>
+  </div>
+
+  <div class="section">
+    <h2>Predicción por lotes</h2>
+    <p class="nota">Ingrese una fila por muestra con el formato: sepal_length,sepal_width,petal_length,petal_width</p>
+    <textarea id="lote_input">5.1,3.5,1.4,0.2
+6.4,3.2,4.5,1.5
+6.3,3.3,6.0,2.5</textarea>
+    <button onclick="predecirLoteLogistica()">Lote regresión logística</button>
+    <button onclick="predecirLoteRedNeuronal()">Lote red neuronal</button>
+    <div id="resultado_lote" class="resultado lote">Ingrese datos y presione una opción de predicción por lotes.</div>
+  </div>
+
+  <div class="section">
+    <h2>Matriz de confusión y métricas de desempeño</h2>
+    <button onclick="mostrarDesempeno()">Mostrar métricas</button>
+    <div id="metricas_desempeno" class="lote">Presione el botón para ver las métricas de regresión logística y red neuronal.</div>
+  </div>
+</div>
+<script>
+const model={"features":["sepal_length","sepal_width","petal_length","petal_width"],"classes":["Iris-setosa","Iris-versicolor","Iris-virginica"],"mean":[5.84,3.05,3.76,1.2],"scale":[0.82,0.43,1.76,0.76],"coef":[[-1.5,1.3,-2.2,-2.0],[0.5,-1.0,0.6,-0.8],[1.0,-0.3,1.6,2.8]],"intercept":[0.5,1.0,-1.5],"defaults":{"sepal_length":5.8,"sepal_width":3.0,"petal_length":4.35,"petal_width":1.3},"accuracy":0.9667};
+const form=document.getElementById('form');
+model.features.forEach(f=>{const d=document.createElement('div');d.innerHTML=`<label>${f}</label><input id="${f}" type="number" step="any" value="${model.defaults[f]}">`;form.appendChild(d);});
+function softmax(z){const m=Math.max(...z);const e=z.map(v=>Math.exp(v-m));const s=e.reduce((a,b)=>a+b,0);return e.map(v=>v/s)}
+function predecir(){const x=model.features.map((f,i)=>(parseFloat(document.getElementById(f).value)-model.mean[i])/model.scale[i]);const scores=model.coef.map((row,k)=>row.reduce((sum,c,i)=>sum+c*x[i],model.intercept[k]));const p=softmax(scores);let idx=p.indexOf(Math.max(...p));document.getElementById('resultado').innerHTML=`Predicción: <b>${model.classes[idx]}</b><br>Probabilidad aproximada: <b>${(p[idx]*100).toFixed(2)}%</b><br>Accuracy del modelo: <b>${(model.accuracy*100).toFixed(2)}%</b>`;}
+
+
+const irisTest=[
+  [5.1,3.5,1.4,0.2,'Iris-setosa'],[4.9,3.0,1.4,0.2,'Iris-setosa'],[4.7,3.2,1.3,0.2,'Iris-setosa'],[4.6,3.1,1.5,0.2,'Iris-setosa'],[5.0,3.6,1.4,0.2,'Iris-setosa'],
+  [7.0,3.2,4.7,1.4,'Iris-versicolor'],[6.4,3.2,4.5,1.5,'Iris-versicolor'],[6.9,3.1,4.9,1.5,'Iris-versicolor'],[5.5,2.3,4.0,1.3,'Iris-versicolor'],[6.5,2.8,4.6,1.5,'Iris-versicolor'],
+  [6.3,3.3,6.0,2.5,'Iris-virginica'],[5.8,2.7,5.1,1.9,'Iris-virginica'],[7.1,3.0,5.9,2.1,'Iris-virginica'],[6.3,2.9,5.6,1.8,'Iris-virginica'],[6.5,3.0,5.8,2.2,'Iris-virginica']
+];
+
+const neuralModel={
+  hiddenW:[[0,0,-6,0],[0,0,6,0],[0,0,-6,0],[0,0,6,0],[0,0,0,4]],
+  hiddenB:[-6,6,4.2,-4.2,0],
+  outputW:[[5,-2,0,-2,0],[-2,4,4,-3,-1],[-2,0,-2,5,1]],
+  outputB:[0,0,0]
+};
+function sigmoid(v){return 1/(1+Math.exp(-v));}
+function estandarizar(valores){return valores.map((v,i)=>(v-model.mean[i])/model.scale[i]);}
+function predictLogistica(valores){const x=estandarizar(valores);const scores=model.coef.map((row,k)=>row.reduce((sum,c,i)=>sum+c*x[i],model.intercept[k]));const p=softmax(scores);const idx=p.indexOf(Math.max(...p));return {idx,clase:model.classes[idx],prob:p[idx],probs:p};}
+function predictNeural(valores){const x=estandarizar(valores);const h=neuralModel.hiddenW.map((row,j)=>sigmoid(row.reduce((sum,w,i)=>sum+w*x[i],neuralModel.hiddenB[j])));const scores=neuralModel.outputW.map((row,k)=>row.reduce((sum,w,j)=>sum+w*h[j],neuralModel.outputB[k]));const p=softmax(scores);const idx=p.indexOf(Math.max(...p));return {idx,clase:model.classes[idx],prob:p[idx],probs:p};}
+function valoresFormulario(){return model.features.map(f=>parseFloat(document.getElementById(f).value));}
+function predecirRedNeuronal(){const r=predictNeural(valoresFormulario());document.getElementById('resultado_nn').innerHTML=`Predicción red neuronal: <b>${r.clase}</b><br>Probabilidad aproximada: <b>${(r.prob*100).toFixed(2)}%</b>`; }
+function leerLote(){return document.getElementById('lote_input').value.trim().split(/\n+/).map(linea=>linea.split(',').map(v=>parseFloat(v.trim()))).filter(row=>row.length===4 && row.every(v=>!isNaN(v)));}
+function tablaLote(rows,predictor,titulo){let html=`<h3>${titulo}</h3><table class="tabla"><tr><th>#</th><th>sepal_length</th><th>sepal_width</th><th>petal_length</th><th>petal_width</th><th>Predicción</th><th>Probabilidad</th></tr>`;rows.forEach((row,i)=>{const r=predictor(row);html+=`<tr><td>${i+1}</td><td>${row[0]}</td><td>${row[1]}</td><td>${row[2]}</td><td>${row[3]}</td><td><b>${r.clase}</b></td><td>${(r.prob*100).toFixed(2)}%</td></tr>`;});return html+'</table>'; }
+function predecirLoteLogistica(){const rows=leerLote();document.getElementById('resultado_lote').innerHTML=rows.length?tablaLote(rows,predictLogistica,'Predicción por lotes - Regresión logística'):'No se encontraron filas válidas.';}
+function predecirLoteRedNeuronal(){const rows=leerLote();document.getElementById('resultado_lote').innerHTML=rows.length?tablaLote(rows,predictNeural,'Predicción por lotes - Red neuronal'):'No se encontraron filas válidas.';}
+function confusionYMetricas(predictor){const n=model.classes.length;const matriz=Array.from({length:n},()=>Array(n).fill(0));irisTest.forEach(row=>{const real=model.classes.indexOf(row[4]);const pred=predictor(row.slice(0,4)).idx;matriz[real][pred]++;});const total=matriz.flat().reduce((a,b)=>a+b,0);const correctos=matriz.reduce((s,row,i)=>s+row[i],0);const porClase=model.classes.map((clase,i)=>{const tp=matriz[i][i];const fp=matriz.reduce((s,row,r)=>r===i?s:s+row[i],0);const fn=matriz[i].reduce((s,v,c)=>c===i?s:s+v,0);const precision=tp+fp===0?0:tp/(tp+fp);const recall=tp+fn===0?0:tp/(tp+fn);const f1=precision+recall===0?0:2*precision*recall/(precision+recall);return {clase,precision,recall,f1};});return {matriz,accuracy:correctos/total,porClase};}
+function htmlConfusion(nombre,datos){let html=`<h3>${nombre}</h3><div class="metricas"><div class="card"><b>Accuracy</b><br>${(datos.accuracy*100).toFixed(2)}%</div></div><table class="tabla"><tr><th>Real \ Predicha</th>`;model.classes.forEach(c=>html+=`<th>${c}</th>`);html+='</tr>';datos.matriz.forEach((row,i)=>{html+=`<tr><th>${model.classes[i]}</th>`;row.forEach(v=>html+=`<td>${v}</td>`);html+='</tr>';});html+='</table><table class="tabla"><tr><th>Clase</th><th>Precisión</th><th>Recall</th><th>F1-score</th></tr>';datos.porClase.forEach(m=>{html+=`<tr><td>${m.clase}</td><td>${(m.precision*100).toFixed(2)}%</td><td>${(m.recall*100).toFixed(2)}%</td><td>${(m.f1*100).toFixed(2)}%</td></tr>`;});return html+'</table>'; }
+function mostrarDesempeno(){const log=confusionYMetricas(predictLogistica);const nn=confusionYMetricas(predictNeural);document.getElementById('metricas_desempeno').innerHTML=htmlConfusion('Regresión logística',log)+htmlConfusion('Red neuronal',nn);}
+
+</script>
+</body>
+</html>
